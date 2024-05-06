@@ -95,7 +95,6 @@ if __name__ == "__main__":
         if local_rank == 0:
             print("\nSuccessful Load Key:", str(load_key)[:500], "……\nSuccessful Load Key Num:", len(load_key))
             print("\nFail To Load Key:", str(no_load_key)[:500], "……\nFail To Load Key num:", len(no_load_key))
-            print("\n\033[1;33;44m温馨提示，head部分没有载入是正常现象，Backbone部分没有载入是错误的。\033[0m")
 
     yolo_loss    = YOLOLoss(num_classes, fp16)
 
@@ -135,13 +134,6 @@ if __name__ == "__main__":
         )
         wanted_step = 5e4 if optimizer_type == "sgd" else 1.5e4
         total_step  = num_train // Unfreeze_batch_size * UnFreeze_Epoch
-        if total_step <= wanted_step:
-            if num_train // Unfreeze_batch_size == 0:
-                raise ValueError('数据集过小，无法进行训练，请扩充数据集。')
-            wanted_epoch = wanted_step // (num_train // Unfreeze_batch_size) + 1
-            print("\n\033[1;33;44m[Warning] 使用%s优化器时，建议将训练总步长设置到%d以上。\033[0m"%(optimizer_type, wanted_step))
-            print("\033[1;33;44m[Warning] 本次运行的总训练数据量为%d，Unfreeze_batch_size为%d，共训练%d个Epoch，计算出总训练步长为%d。\033[0m"%(num_train, Unfreeze_batch_size, UnFreeze_Epoch, total_step))
-            print("\033[1;33;44m[Warning] 由于总训练步长为%d，小于建议总步长%d，建议设置总世代为%d。\033[0m"%(total_step, wanted_step, wanted_epoch))
     if True:
         UnFreeze_flag = False
         if Freeze_Train:
@@ -174,9 +166,6 @@ if __name__ == "__main__":
 
         epoch_step      = num_train // batch_size
         epoch_step_val  = num_val // batch_size
-        
-        if epoch_step == 0 or epoch_step_val == 0:
-            raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
         
         if ema:
             ema.updates     = epoch_step * Init_Epoch
@@ -221,9 +210,6 @@ if __name__ == "__main__":
 
                 epoch_step      = num_train // batch_size
                 epoch_step_val  = num_val // batch_size
-
-                if epoch_step == 0 or epoch_step_val == 0:
-                    raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
 
                 if distributed:
                     batch_size = batch_size // ngpus_per_node
