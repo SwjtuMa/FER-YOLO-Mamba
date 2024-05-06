@@ -240,68 +240,50 @@ class SelectiveScanFake(torch.autograd.Function):
 
 # =============
 def antidiagonal_gather(tensor):
-    # 取出矩阵所有反斜向的元素并拼接
     B, C, H, W = tensor.size()
-    shift = torch.arange(H, device=tensor.device).unsqueeze(1)  # 创建一个列向量[H, 1]
-    index = (torch.arange(W, device=tensor.device) - shift) % W  # 利用广播创建索引矩阵[H, W]
-    # 扩展索引以适应B和C维度
+    shift = torch.arange(H, device=tensor.device).unsqueeze(1)  
+    index = (torch.arange(W, device=tensor.device) - shift) % W  
     expanded_index = index.unsqueeze(0).unsqueeze(0).expand(B, C, -1, -1)
-    # 使用gather进行索引选择
     return tensor.gather(3, expanded_index).transpose(-1,-2).reshape(B, C, H*W)
 
 def diagonal_gather(tensor):
-    # 取出矩阵所有反斜向的元素并拼接
     B, C, H, W = tensor.size()
-    shift = torch.arange(H, device=tensor.device).unsqueeze(1)  # 创建一个列向量[H, 1]
-    index = (shift + torch.arange(W, device=tensor.device)) % W  # 利用广播创建索引矩阵[H, W]
-    # 扩展索引以适应B和C维度
+    shift = torch.arange(H, device=tensor.device).unsqueeze(1) 
+    index = (shift + torch.arange(W, device=tensor.device)) % W  
     expanded_index = index.unsqueeze(0).unsqueeze(0).expand(B, C, -1, -1)
-    # 使用gather进行索引选择
     return tensor.gather(3, expanded_index).transpose(-1,-2).reshape(B, C, H*W)
 
 def diagonal_scatter(tensor_flat, original_shape):
-    # 把斜向元素拼接起来的一维向量还原为最初的矩阵形式
     B, C, H, W = original_shape
-    shift = torch.arange(H, device=tensor_flat.device).unsqueeze(1)  # 创建一个列向量[H, 1]
-    index = (shift + torch.arange(W, device=tensor_flat.device)) % W  # 利用广播创建索引矩阵[H, W]
-    # 扩展索引以适应B和C维度
+    shift = torch.arange(H, device=tensor_flat.device).unsqueeze(1)  
+    index = (shift + torch.arange(W, device=tensor_flat.device)) % W  
     expanded_index = index.unsqueeze(0).unsqueeze(0).expand(B, C, -1, -1)
-    # 创建一个空的张量来存储反向散布的结果
     result_tensor = torch.zeros(B, C, H, W, device=tensor_flat.device, dtype=tensor_flat.dtype)
-    # 将平铺的张量重新变形为[B, C, H, W]，考虑到需要使用transpose将H和W调换
     tensor_reshaped = tensor_flat.reshape(B, C, W, H).transpose(-1, -2)
-    # 使用scatter_根据expanded_index将元素放回原位
     result_tensor.scatter_(3, expanded_index, tensor_reshaped)
     return result_tensor
 
 def antidiagonal_scatter(tensor_flat, original_shape):
-    # 把反斜向元素拼接起来的一维向量还原为最初的矩阵形式
     B, C, H, W = original_shape
-    shift = torch.arange(H, device=tensor_flat.device).unsqueeze(1)  # 创建一个列向量[H, 1]
-    index = (torch.arange(W, device=tensor_flat.device) - shift) % W  # 利用广播创建索引矩阵[H, W]
+    shift = torch.arange(H, device=tensor_flat.device).unsqueeze(1)  
+    index = (torch.arange(W, device=tensor_flat.device) - shift) % W  
     expanded_index = index.unsqueeze(0).unsqueeze(0).expand(B, C, -1, -1)
-    # 初始化一个与原始张量形状相同、元素全为0的张量
     result_tensor = torch.zeros(B, C, H, W, device=tensor_flat.device, dtype=tensor_flat.dtype)
-    # 将平铺的张量重新变形为[B, C, W, H]，因为操作是沿最后一个维度收集的，需要调整形状并交换维度
     tensor_reshaped = tensor_flat.reshape(B, C, W, H).transpose(-1, -2)
-    # 使用scatter_将元素根据索引放回原位
     result_tensor.scatter_(3, expanded_index, tensor_reshaped)
     return result_tensor
 
 class CrossScan(torch.autograd.Function):
-    # ZSJ 这里是把图像按照特定方向展平的地方，改变扫描方向可以在这里修改
     @staticmethod
     def forward(ctx, x: torch.Tensor):
         B, C, H, W = x.shape
         ctx.shape = (B, C, H, W)
         # xs = x.new_empty((B, 4, C, H * W))
         xs = x.new_empty((B, 8, C, H * W))
-        # 添加横向和竖向的扫描
         xs[:, 0] = x.flatten(2, 3)
         xs[:, 1] = x.transpose(dim0=2, dim1=3).flatten(2, 3)
         xs[:, 2:4] = torch.flip(xs[:, 0:2], dims=[-1])
     
-        # 提供斜向和反斜向的扫描
         xs[:, 4] = diagonal_gather(x)
         xs[:, 5] = antidiagonal_gather(x)
         xs[:, 6:8] = torch.flip(xs[:, 4:6], dims=[-1])
@@ -313,17 +295,13 @@ class CrossScan(torch.autograd.Function):
         # out: (b, k, d, l)
         B, C, H, W = ctx.shape
         L = H * W
-        # 把横向和竖向的反向部分再反向回来，并和原来的横向和竖向相加
         # ys = ys[:, 0:2] + ys[:, 2:4].flip(dims=[-1]).view(B, 2, -1, L)
         y_rb = ys[:, 0:2] + ys[:, 2:4].flip(dims=[-1]).view(B, 2, -1, L)
-        # 把竖向的部分转成横向，然后再相加,再转回最初是的矩阵形式
         # y = ys[:, 0] + ys[:, 1].view(B, -1, W, H).transpose(dim0=2, dim1=3).contiguous().view(B, -1, L)
         y_rb = y_rb[:, 0] + y_rb[:, 1].view(B, -1, W, H).transpose(dim0=2, dim1=3).contiguous().view(B, -1, L)
         y_rb = y_rb.view(B, -1, H, W)
 
-        # 把斜向和反斜向的反向部分再反向回来，并和原来的斜向和反斜向相加
         y_da = ys[:, 4:6] + ys[:, 6:8].flip(dims=[-1]).view(B, 2, -1, L)
-        # 把斜向和反斜向的部分都转成原来的最初的矩阵形式，再相加
         y_da = diagonal_scatter(y_da[:, 0], (B,C,H,W)) + antidiagonal_scatter(y_da[:, 1], (B,C,H,W))
 
         y_res = y_rb + y_da
@@ -341,13 +319,10 @@ class CrossMerge(torch.autograd.Function):
         # y = ys[:, 0] + ys[:, 1].view(B, -1, W, H).transpose(dim0=2, dim1=3).contiguous().view(B, D, -1)
 
         y_rb = ys[:, 0:2] + ys[:, 2:4].flip(dims=[-1]).view(B, 2, D, -1)
-        # 把竖向的部分转成横向，然后再相加,再转回最初是的矩阵形式
         y_rb = y_rb[:, 0] + y_rb[:, 1].view(B, -1, W, H).transpose(dim0=2, dim1=3).contiguous().view(B, D, -1)
         y_rb = y_rb.view(B, -1, H, W)
 
-        # 把斜向和反斜向的反向部分再反向回来，并和原来的斜向和反斜向相加
         y_da = ys[:, 4:6] + ys[:, 6:8].flip(dims=[-1]).view(B, 2, D, -1)
-        # 把斜向和反斜向的部分都转成原来的最初的矩阵形式，再相加
         y_da = diagonal_scatter(y_da[:, 0], (B,D,H,W)) + antidiagonal_scatter(y_da[:, 1], (B,D,H,W))
 
         y_res = y_rb + y_da
@@ -369,7 +344,6 @@ class CrossMerge(torch.autograd.Function):
         xs[:, 2:4] = torch.flip(xs[:, 0:2], dims=[-1])
         # xs = xs.view(B, 4, C, H, W)
 
-        # 提供斜向和反斜向的扫描
         xs[:, 4] = diagonal_gather(x.view(B,C,H,W))
         xs[:, 5] = antidiagonal_gather(x.view(B,C,H,W))
         xs[:, 6:8] = torch.flip(xs[:, 4:6], dims=[-1])
@@ -457,9 +431,6 @@ class CrossMerge_Ab_1direction(torch.autograd.Function):
         xs = x.view(B, 1, C, L).repeat(1, 4, 1, 1).contiguous().view(B, 4, C, H, W)
         return xs
 
-
-# =============
-# 增加扫描方向
 def cross_selective_scan(
     x: torch.Tensor=None, 
     x_proj_weight: torch.Tensor=None,
@@ -533,11 +504,9 @@ def cross_selective_scan(
         dts = dts.to(torch.float)
         Bs = Bs.to(torch.float)
         Cs = Cs.to(torch.float)
-    # ZSJ 这里把矩阵拆分成不同方向的序列，并进行扫描
     ys: torch.Tensor = selective_scan(
         xs, dts, As, Bs, Cs, Ds, delta_bias, delta_softplus
     ).view(B, K, -1, H, W)
-    # ZSJ 这里把处理之后的序列融合起来，并还原回原来的矩阵形式
     y: torch.Tensor = CrossMerge.apply(ys)
 
     if out_norm_shape in ["v1"]: # (B, C, H, W)
@@ -643,8 +612,6 @@ class SS2D(nn.Module):
                 debugscan_sharessm=partial(self.forward_corev2, force_fp32=False, SelectiveScan=SelectiveScanOflex, cross_selective_scan=cross_selective_scanv2),
             ))
         self.forward_core = FORWARD_TYPES.get(forward_type, None)
-        # ZSJ k_group 指的是扫描的方向
-        # k_group = 4 if forward_type not in ["debugscan_sharessm"] else 1
         k_group = 8 if forward_type not in ["debugscan_sharessm"] else 1
 
         # in proj =======================================
@@ -771,7 +738,6 @@ class SS2D(nn.Module):
         L = H * W
 
         x_hwwh = torch.stack([x.view(B, -1, L), torch.transpose(x, dim0=2, dim1=3).contiguous().view(B, -1, L)], dim=1).view(B, 2, -1, L)
-        # torch.flip把横向和竖向两个方向都进行反向操作
         xs = torch.cat([x_hwwh, torch.flip(x_hwwh, dims=[-1])], dim=1) # (b, k, d, l)
 
         x_dbl = torch.einsum("b k d l, k c d -> b k c l", xs, self.x_proj_weight)
@@ -885,8 +851,6 @@ class ConvSSM1(nn.Module):
         output = torch.cat((input_left,x),dim=1)
         output = self.finalconv11(output).permute(0,2,3,1).contiguous()
         return output+input
-
-
 
 class YOLOXHead(nn.Module):
     def __init__(self, num_classes, width = 1.0, in_channels = [256, 512, 1024], act = "silu", depthwise = False,):
