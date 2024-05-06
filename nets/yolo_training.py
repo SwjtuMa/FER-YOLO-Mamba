@@ -9,7 +9,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class IOUloss(nn.Module):
     def __init__(self, reduction="none", loss_type="iou"):
         super(IOUloss, self).__init__()
@@ -97,25 +96,11 @@ class YOLOLoss(nn.Module):
         return output, grid
 
     def get_losses(self, x_shifts, y_shifts, expanded_strides, labels, outputs):
-        #-----------------------------------------------#
-        #   [batch, n_anchors_all, 4]
-        #-----------------------------------------------#
         bbox_preds  = outputs[:, :, :4]  
-        #-----------------------------------------------#
-        #   [batch, n_anchors_all, 1]
-        #-----------------------------------------------#
         obj_preds   = outputs[:, :, 4:5]
-        #-----------------------------------------------#
-        #   [batch, n_anchors_all, n_cls]
-        #-----------------------------------------------#
         cls_preds   = outputs[:, :, 5:]  
 
         total_num_anchors   = outputs.shape[1]
-        #-----------------------------------------------#
-        #   x_shifts            [1, n_anchors_all]
-        #   y_shifts            [1, n_anchors_all]
-        #   expanded_strides    [1, n_anchors_all]
-        #-----------------------------------------------#
         x_shifts            = torch.cat(x_shifts, 1).type_as(outputs)
         y_shifts            = torch.cat(y_shifts, 1).type_as(outputs)
         expanded_strides    = torch.cat(expanded_strides, 1).type_as(outputs)
@@ -134,13 +119,6 @@ class YOLOLoss(nn.Module):
                 obj_target  = outputs.new_zeros((total_num_anchors, 1))
                 fg_mask     = outputs.new_zeros(total_num_anchors).bool()
             else:
-                #-----------------------------------------------#
-                #   gt_bboxes_per_image     [num_gt, num_classes]
-                #   gt_classes              [num_gt]
-                #   bboxes_preds_per_image  [n_anchors_all, 4]
-                #   cls_preds_per_image     [n_anchors_all, num_classes]
-                #   obj_preds_per_image     [n_anchors_all, 1]
-                #-----------------------------------------------#
                 gt_bboxes_per_image     = labels[batch_idx][..., :4].type_as(outputs)
                 gt_classes              = labels[batch_idx][..., 4].type_as(outputs)
                 bboxes_preds_per_image  = bbox_preds[batch_idx]
