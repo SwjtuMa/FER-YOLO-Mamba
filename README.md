@@ -23,7 +23,9 @@ pip install mamba-ssm==1.2.0.post1
 
 # 📜Other requirements📜:
 Linux System
+
 NVIDIA GPU
+
 CUDA 11.7+
 
 # ✨Acknowledgments✨
