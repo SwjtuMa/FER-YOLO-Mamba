@@ -22,11 +22,11 @@ If you find this project helpful, please give us a star ⭐️, your support is 
 -pip install mamba-ssm==1.2.0.post1 
 
 # 📜Other requirements📜:
-Linux System
+-Linux System
 
-NVIDIA GPU
+*NVIDIA GPU
 
-CUDA 11.7+
++CUDA 11.7+
 
 # ✨Acknowledgments✨
 We thank the authors of  [VMamba](https://github.com/MzeroMiko/VMamba), [MedMamba](https://github.com/YubiaoYue/MedMamba) and [YOLOvX](https://github.com/bubbliiiing/yolox-pytorch) for their open-source codes.
