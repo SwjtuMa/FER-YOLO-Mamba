@@ -12,9 +12,13 @@ If you find this project helpful, please give us a star ⭐️, your support is 
 
 # 📌Installation📌
 -pip install torch==2.0.0 torchvision==0.15.1 torchaudio==2.0.1 
+
 -pip install packaging
+
 -pip install timm==0.4.12
+
 -pip install causal-conv1d==1.2.0.post2 
+
 -pip install mamba-ssm==1.2.0.post1 
 
 # 📜Other requirements📜:
@@ -30,11 +34,11 @@ We thank the authors of  [VMamba](https://github.com/MzeroMiko/VMamba), [MedMamb
 # 💞Citation💞
 If you use the code or performance benchmarks of this project in your research, please refer to the following bibtex citation of FER-YOLO-Mamba.
 > @article{ma2024feryolomamba,
->      title={FER-YOLO-Mamba: Facial Expression Detection and Classification Based on Selective State Space}, 
->      author={Hui Ma and Sen Lei and Turgay Celik and Heng-Chao Li},
->      journal={arXiv preprint arXiv:2405.01828},
->      year={2024}
->}
+      title={FER-YOLO-Mamba: Facial Expression Detection and Classification Based on Selective State Space}, 
+      author={Hui Ma and Sen Lei and Turgay Celik and Heng-Chao Li},
+      journal={arXiv preprint arXiv:2405.01828},
+      year={2024}
+}
 
 # Contact Us
 If you have any other questions❓, please contact us in time 👬
