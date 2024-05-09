@@ -11,22 +11,22 @@ The current branch has been tested on Linux system, PyTorch 2.0.0 and CUDA 11.7,
 If you find this project helpful, please give us a star ⭐️, your support is our greatest motivation.
 
 # 📌Installation📌
--pip install torch==2.0.0 torchvision==0.15.1 torchaudio==2.0.1 
+- pip install torch==2.0.0 torchvision==0.15.1 torchaudio==2.0.1 
 
--pip install packaging
+- pip install packaging
 
--pip install timm==0.4.12
+- pip install timm==0.4.12
 
--pip install causal-conv1d==1.2.0.post2 
+- pip install causal-conv1d==1.2.0.post2 
 
--pip install mamba-ssm==1.2.0.post1 
+- pip install mamba-ssm==1.2.0.post1 
 
 # 📜Other requirements📜:
--Linux System
+- Linux System
 
-*NVIDIA GPU
+* NVIDIA GPU
 
-+CUDA 11.7+
++ CUDA 11.7+
 
 # ✨Acknowledgments✨
 We thank the authors of  [VMamba](https://github.com/MzeroMiko/VMamba), [MedMamba](https://github.com/YubiaoYue/MedMamba) and [YOLOvX](https://github.com/bubbliiiing/yolox-pytorch) for their open-source codes.
